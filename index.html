@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI智能推荐 - 发现你的下一个最爱</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; min-height: 100vh; color: #333; }
+        .container { max-width: 400px; margin: 0 auto; background: #f5f7fa; min-height: 100vh; position: relative; }
+        .header { background: white; padding: 60px 20px 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: relative; }
+        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; color: #2c3e50; }
+        .header p { color: #7f8c8d; font-size: 14px; margin-bottom: 20px; }
+        .tab-container { display: flex; background: #f8f9fa; border-radius: 12px; padding: 4px; margin: 0 20px; }
+        .tab-btn { flex: 1; padding: 10px 12px; background: transparent; border: none; color: #6c757d; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s ease; }
+        .tab-btn.active { background: white; color: #495057; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .content-area { padding: 20px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        /* 推荐页面样式 */
+        .recommendation-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 16px; border: 1px solid #e9ecef; }
+        .game-image { width: 100%; height: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .game-character { font-size: 80px; opacity: 0.9; z-index: 0; }
+        .rating-badge { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 20px; font-weight: 600; color: #495057; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 2; }
+        .banner-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.55) 100%); display: flex; align-items: flex-end; padding: 14px; z-index: 1; }
+        .banner-copy { color: #fff; font-weight: 800; font-size: 14px; line-height: 1.4; text-shadow: 0 2px 10px rgba(0,0,0,.45); letter-spacing: .2px; }
+        .game-info { padding: 20px; }
+        .game-title { font-size: 18px; font-weight: 600; color: #2c3e50; margin-bottom: 6px; }
+        .game-category { color: #6c757d; font-size: 13px; margin-bottom: 12px; }
+        .game-description { color: #495057; line-height: 1.6; margin-bottom: 16px; font-size: 14px; }
+        .game-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+        .tag { background: #f8f9fa; color: #6c757d; padding: 4px 10px; border-radius: 12px; font-size: 12px; border: 1px solid #e9ecef; }
+        .feedback-section { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 16px; border: 1px solid #e9ecef; }
+        .feedback-title { font-size: 16px; font-weight: 600; color: #2c3e50; margin-bottom: 16px; text-align: center; }
+        .feedback-buttons { display: flex; gap: 12px; margin-bottom: 16px; }
+        .feedback-btn { flex: 1; padding: 12px; border: 1px solid #dee2e6; background: white; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; text-align: center; font-weight: 500; color: #495057; font-size: 14px; }
+        .feedback-btn:hover { border-color: #adb5bd; background: #f8f9fa; }
+        .feedback-btn.like.active { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .feedback-btn.dislike.active { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .preference-input { margin-top: 16px; display: none; }
+        .preference-input.show { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .input-group { margin-bottom: 16px; }
+        .input-label { display: block; font-weight: 500; color: #495057; margin-bottom: 8px; font-size: 14px; }
+        .input-field { width: 100%; padding: 12px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 14px; transition: border-color 0.3s ease; background: #f8f9fa; }
+        .input-field:focus { outline: none; border-color: #80bdff; background: white; }
+        .genre-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .genre-option { padding: 8px 14px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 16px; cursor: pointer; font-size: 13px; transition: all 0.3s ease; color: #495057; }
+        .genre-option:hover { background: #e9ecef; border-color: #adb5bd; }
+        .genre-option.selected { background: #667eea; border-color: #667eea; color: white; }
+        .get-recommendation-btn { width: 100%; padding: 12px; background: #000; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-top: 16px; }
+        .get-recommendation-btn:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); }
+        .ai-badge { display: inline-block; background: #000; color: white; padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-bottom: 8px; }
+        .user-input-section { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid #e9ecef; }
+        /* 游戏画像页面样式 */
+        .profile-header { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white; padding: 24px; border-radius: 16px; margin-bottom: 16px; position: relative; overflow: hidden; }
+        .profile-header::before { content: ''; position: absolute; top: -50px; right: -50px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; }
+        .profile-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .profile-subtitle { font-size: 13px; opacity: 0.9; line-height: 1.5; }
+        .radar-container { background: white; border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid #e9ecef; }
+        .radar-chart { width: 260px; height: 260px; margin: 0 auto 20px; position: relative; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .stat-item { background: #f8f9fa; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #e9ecef; }
+        .stat-label { font-size: 12px; color: #6c757d; margin-bottom: 4px; }
+        .stat-value { font-size: 16px; font-weight: 600; color: #2c3e50; }
+        .stat-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .analysis-section { background: white; border-radius: 16px; padding: 18px; margin-bottom: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid #e9ecef; }
+        .analysis-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .analysis-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .analysis-title { font-size: 15px; font-weight: 600; color: #2c3e50; }
+        .analysis-content { color: #495057; line-height: 1.6; font-size: 13px; margin-bottom: 10px; }
+        .analysis-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .analysis-tag { background: #f8f9fa; color: #495057; padding: 4px 8px; border-radius: 10px; font-size: 11px; border: 1px solid #e9ecef; }
+        .recommendation-list { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid #e9ecef; }
+        .recommendation-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; margin-bottom: 8px; background: #f8f9fa; transition: all 0.3s ease; cursor: pointer; border: 1px solid #e9ecef; }
+        .recommendation-item:hover { background: #e9ecef; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .rec-game-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #667eea; color: white; }
+        .rec-game-info { flex: 1; }
+        .rec-game-title { font-size: 14px; font-weight: 600; color: #2c3e50; margin-bottom: 2px; }
+        .rec-game-desc { font-size: 12px; color: #6c757d; margin-bottom: 4px; }
+        .rec-game-match { font-size: 11px; color: #28a745; font-weight: 500; }
+        .rec-game-reason { font-size: 11px; color: #495057; margin-top: 2px; }
+        .loading { display: none; text-align: center; padding: 40px 20px; color: #6c757d; }
+        .loading.show { display: block; }
+        .spinner { width: 32px; height: 32px; border: 3px solid #f8f9fa; border-top: 3px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .section-title { font-size: 16px; font-weight: 600; color: #2c3e50; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 AI智能推荐</h1>
+            <p>为你精选最合适的游戏</p>
+            <div class="tab-container">
+                <button class="tab-btn active" onclick="switchTab('recommend', event)">智能推荐</button>
+                <button class="tab-btn" onclick="switchTab('profile', event)">游戏画像</button>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <!-- 智能推荐Tab -->
+            <div id="recommendTab" class="tab-content active">
+                <div id="initialRecommendation">
+                    <div class="recommendation-card">
+                        <div class="game-image">
+                            <div class="game-character">⚔️</div>
+                            <div class="rating-badge">匹配度 92%</div>
+                            <!-- Banner 文案蒙层 -->
+                            <div class="banner-overlay">
+                                <div class="banner-copy">真人在线沙盘博弈，无剧本不滚服，万人实时谋攻守伐，你的每一个策略都决定三国大势！</div>
+                            </div>
+                        </div>
+                        <div class="game-info">
+                            <div class="ai-badge">AI为你推荐</div>
+                            <div class="game-title">三国志·战略版</div>
+                            <div class="game-category">策略SLG • 三国</div>
+                            <div class="game-description">个性化推荐理由：深度三国策略玩法，真实地形沙盘，联盟合作机制丰富。策略性强，长期养成价值高，符合你的战术思维和历史题材偏好。</div>
+                            <div class="game-tags">
+                                <span class="tag">三国题材</span>
+                                <span class="tag">SLG策略</span>
+                                <span class="tag">地形沙盘</span>
+                                <span class="tag">联盟合作</span>
+                                <span class="tag">长期养成</span>
+                                <span class="tag">多人对抗</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feedback-section">
+                        <div class="feedback-title">这个推荐怎么样？</div>
+                        <div class="feedback-buttons">
+                            <button class="feedback-btn like" onclick="handleFeedback('like', event)">👍 喜欢</button>
+                            <button class="feedback-btn dislike" onclick="handleFeedback('dislike', event)">👎 不喜欢</button>
+                        </div>
+
+                        <div id="likeOptions" class="preference-input">
+                            <div class="input-group">
+                                <label class="input-label">太好了！你还想要什么类型的推荐？</label>
+                                <div class="genre-options">
+                                    <span class="genre-option" onclick="selectQuickOption(this)">推荐更多类似的</span>
+                                    <span class="genre-option" onclick="selectQuickOption(this)">换个风格试试</span>
+                                    <span class="genre-option" onclick="selectQuickOption(this)">更有挑战性的</span>
+                                    <span class="genre-option" onclick="selectQuickOption(this)">更轻松休闲的</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="dislikeOptions" class="preference-input">
+                            <div class="input-group">
+                                <label class="input-label">没关系，告诉我你更喜欢什么？</label>
+                                <div class="genre-options">
+                                    <span class="genre-option" onclick="selectQuickOption(this)">我想要刺激的动作游戏</span>
+                                    <span class="genre-option" onclick="selectQuickOption(this)">我喜欢烧脑的策略游戏</span>
+                                    <span class="genre-option" onclick="selectQuickOption(this)">我想要有剧情的RPG</span>
+                                    <span class="genre-option" onclick="selectQuickOption(this)">我喜欢多人竞技游戏</span>
+                                    <span class="genre-option" onclick="selectQuickOption(this)">我想要治愈系的游戏</span>
+                                    <span class="genre-option" onclick="selectQuickOption(this)">我喜欢音乐节奏游戏</span>
+                                    <span class="genre-option" onclick="selectQuickOption(this)">自定义我的需求</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="customPreferences" class="preference-input">
+                            <div class="input-group">
+                                <label class="input-label">告诉我你更想玩什么类型的游戏？</label>
+                                <div class="genre-options">
+                                    <span class="genre-option" onclick="toggleGenre(this)">动作冒险</span>
+                                    <span class="genre-option" onclick="toggleGenre(this)">角色扮演</span>
+                                    <span class="genre-option" onclick="toggleGenre(this)">策略游戏</span>
+                                    <span class="genre-option" onclick="toggleGenre(this)">射击游戏</span>
+                                    <span class="genre-option" onclick="toggleGenre(this)">益智解谜</span>
+                                    <span class="genre-option" onclick="toggleGenre(this)">竞技对战</span>
+                                    <span class="genre-option" onclick="toggleGenre(this)">音乐节奏</span>
+                                    <span class="genre-option" onclick="toggleGenre(this)">卡牌收集</span>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">你喜欢什么画风？</label>
+                                <div class="genre-options">
+                                    <span class="genre-option" onclick="toggleGenre(this)">写实风格</span>
+                                    <span class="genre-option" onclick="toggleGenre(this)">卡通萌系</span>
+                                    <span class="genre-option" onclick="toggleGenre(this)">日系动漫</span>
+                                    <span class="genre-option" onclick="toggleGenre(this)">像素复古</span>
+                                    <span class="genre-option" onclick="toggleGenre(this)">暗黑风格</span>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">游戏时长偏好</label>
+                                <div class="genre-options">
+                                    <span class="genre-option" onclick="toggleGenre(this)">碎片时间(5-15分钟)</span>
+                                    <span class="genre-option" onclick="toggleGenre(this)">轻度游玩(30分钟-1小时)</span>
+                                    <span class="genre-option" onclick="toggleGenre(this)">深度体验(1小时以上)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 独立的用户输入区域（默认外露） -->
+                <div class="user-input-section">
+                    <div class="input-group">
+                        <label class="input-label">💬 或者直接告诉我们</label>
+                        <input type="text" class="input-field" id="userInput" placeholder="输入你喜欢玩的游戏或想找的游戏类型...">
+                        <button class="get-recommendation-btn" onclick="handleUserInput()">🔍 为我推荐</button>
+                    </div>
+                </div>
+
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>AI正在为你分析偏好...</p>
+                </div>
+
+                <div id="newRecommendation" style="display: none;"></div>
+            </div>
+
+            <!-- 游戏画像Tab -->
+            <div id="profileTab" class="tab-content">
+                <div class="profile-header">
+                    <div class="profile-title">🧬 你的游戏DNA解读</div>
+                    <div class="profile-subtitle">你是个策略思维者，喜欢在紧张刺激中运筹帷幄，享受大动作技能的爽快感，你的游戏天平偏向高感受，但讨厌过度复杂的机制。</div>
+                </div>
+                <div class="radar-container">
+                    <div class="radar-chart">
+                        <svg width="260" height="260" viewBox="0 0 260 260">
+                            <g stroke="#e9ecef" stroke-width="1" fill="none">
+                                <polygon points="130,20 195,60 195,140 130,180 65,140 65,60" opacity="0.5"/>
+                                <polygon points="130,45 170,70 170,120 130,145 90,120 90,70" opacity="0.5"/>
+                                <polygon points="130,70 145,80 145,110 130,120 115,110 115,80" opacity="0.5"/>
+                                <line x1="130" y1="130" x2="130" y2="20"/>
+                                <line x1="130" y1="130" x2="195" y2="60"/>
+                                <line x1="130" y1="130" x2="195" y2="140"/>
+                                <line x1="130" y1="130" x2="130" y2="180"/>
+                                <line x1="130" y1="130" x2="65" y2="140"/>
+                                <line x1="130" y1="130" x2="65" y2="60"/>
+                            </g>
+                            <polygon points="130,25 185,68 175,138 130,165 85,138 75,68" fill="rgba(102, 126, 234, 0.2)" stroke="#667eea" stroke-width="2"/>
+                            <circle cx="130" cy="25" r="3" fill="#667eea"/>
+                            <circle cx="185" cy="68" r="3" fill="#667eea"/>
+                            <circle cx="175" cy="138" r="3" fill="#667eea"/>
+                            <circle cx="130" cy="165" r="3" fill="#667eea"/>
+                            <circle cx="85" cy="138" r="3" fill="#667eea"/>
+                            <circle cx="75" cy="68" r="3" fill="#667eea"/>
+                            <text x="130" y="15" text-anchor="middle" fill="#495057" font-size="11">策略思考</text>
+                            <text x="205" y="65" text-anchor="start" fill="#495057" font-size="11">竞技对抗</text>
+                            <text x="205" y="145" text-anchor="start" fill="#495057" font-size="11">角色成长</text>
+                            <text x="130" y="195" text-anchor="middle" fill="#495057" font-size="11">团队协作</text>
+                            <text x="55" y="145" text-anchor="end" fill="#495057" font-size="11">休闲娱乐</text>
+                            <text x="55" y="65" text-anchor="end" fill="#495057" font-size="11">收集养成</text>
+                        </svg>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-item"><div class="stat-label"><span class="stat-dot" style="background: #667eea;"></span>策略思考</div><div class="stat-value">95%</div></div>
+                        <div class="stat-item"><div class="stat-label"><span class="stat-dot" style="background: #6c757d;"></span>竞技对抗</div><div class="stat-value">80%</div></div>
+                        <div class="stat-item"><div class="stat-label"><span class="stat-dot" style="background: #28a745;"></span>角色成长</div><div class="stat-value">75%</div></div>
+                        <div class="stat-item"><div class="stat-label"><span class="stat-dot" style="background: #17a2b8;"></span>团队协作</div><div class="stat-value">60%</div></div>
+                        <div class="stat-item"><div class="stat-label"><span class="stat-dot" style="background: #ffc107;"></span>休闲娱乐</div><div class="stat-value">30%</div></div>
+                        <div class="stat-item"><div class="stat-label"><span class="stat-dot" style="background: #e83e8c;"></span>收集养成</div><div class="stat-value">45%</div></div>
+                    </div>
+                </div>
+                <div class="analysis-section"><div class="analysis-header"><div class="analysis-icon" style="background: #667eea; color: white;">🎯</div><div class="analysis-title">题材偏好分析</div></div><div class="analysis-content">你深受国风/仙侠题材吸引，古风美学、神话武侠的东方文化背景，对三国历史策略类西幻RPG也有涉猎。</div><div class="analysis-tags"><span class="analysis-tag">国风/仙侠 ⭐⭐⭐⭐</span><span class="analysis-tag">古幻/志怪</span><span class="analysis-tag">三国策略</span></div></div>
+                <div class="analysis-section"><div class="analysis-header"><div class="analysis-icon" style="background: #28a745; color: white;">⚔️</div><div class="analysis-title">玩法偏好分析</div></div><div class="analysis-content">你喜欢中重度RPG，乐于角色养成，同副本、参与战斗，也喜欢策略的快感，对运营类动作轻度有较强兴趣与意愿。</div><div class="analysis-tags"><span class="analysis-tag">中重度RPG ⭐⭐⭐⭐</span><span class="analysis-tag">MMO/ARPG</span><span class="analysis-tag">策略战术</span></div></div>
+                <div class="analysis-section"><div class="analysis-header"><div class="analysis-icon" style="背景: #17a2b8; color: white;">🎨</div><div class="analysis-title">美术与社交偏好</div></div><div class="analysis-content">你对精美的卡通国风画面偏好，能够受到美轮美奂的游戏风格，喜欢合作与群友共同的社交模式，非线性机械玩家。</div></div>
+                <div class="recommendation-list">
+                    <h3 class="section-title">🎮 基于画像的推荐</h3>
+                    <div class="recommendation-item" onclick="selectProfileGame(this)"><div class="rec-game-icon">🗡️</div><div class="rec-game-info"><div class="rec-game-title">剑侠情缘</div><div class="rec-game-desc">国风武侠MMORPG，江湖豪情</div><div class="rec-game-reason">个性化推荐理由：你的画像偏好国风武侠与社交协作，门派/帮会与轻度副本契合你的团队倾向。</div><div class="rec-game-match">匹配度: 96%</div></div></div>
+                    <div class="recommendation-item" onclick="selectProfileGame(this)"><div class="rec-game-icon">⚔️</div><div class="rec-game-info"><div class="rec-game-title">三国志·战略版</div><div class="rec-game-desc">经典三国策略，多人竞技</div><div class="rec-game-reason">个性化推荐理由：画像显示你擅长策略思考且偏好历史题材，沙盘博弈与联盟战能发挥你的战术优势。</div><div class="rec-game-match">匹配度: 92%</div></div></div>
+                    <div class="recommendation-item" onclick="selectProfileGame(this)"><div class="rec-game-icon">🏮</div><div class="rec-game-info"><div class="rec-game-title">大话西游</div><div class="rec-game-desc">经典回合制RPG，社交养成</div><div class="rec-game-reason">个性化推荐理由：你重视社交与长期养成，回合制节奏友好，家族/师徒体系与公会社交贴合你的画像。</div><div class="rec-game-match">匹配度: 89%</div></div></div>
+                    <div class="recommendation-item" onclick="selectProfileGame(this)"><div class="rec-game-icon">🐉</div><div class="rec-game-info"><div class="rec-game-title">龙族幻想</div><div class="rec-game-desc">现代玄幻MMORPG，自由探索</div><div class="rec-game-reason">个性化推荐理由：你偏好高感受与自由探索，大场景开放世界与动作表现满足你的刺激阈值。</div><div class="rec-game-match">匹配度: 85%</div></div></div>
+                    <div class="recommendation-item" onclick="selectProfileGame(this)"><div class="rec-game-icon">✨</div><div class="rec-game-info"><div class="rec-game-title">完美世界</div><div class="rec-game-desc">3D飞行MMORPG，唯美仙侠</div><div class="rec-game-reason">个性化推荐理由：你偏好唯美画风与团队协作，飞行探索与门派副本能持续满足成长驱动。</div><div class="rec-game-match">匹配度: 82%</div></div></div>
+                    <button class="get-recommendation-btn" onclick="generateMoreProfileRecs()">🔄 生成更多推荐</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentFeedback = null; let selectedGenres = []; let currentTab = 'recommend';
+        function switchTab(tabName, e){ document.querySelectorAll('.tab-btn').forEach(btn=>btn.classList.remove('active')); e.target.classList.add('active'); document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active')); (tabName==='recommend'?document.getElementById('recommendTab'):document.getElementById('profileTab')).classList.add('active'); currentTab=tabName; }
+        function handleFeedback(type, e){ currentFeedback=type; document.querySelectorAll('.feedback-btn').forEach(btn=>btn.classList.remove('active')); e.target.classList.add('active'); document.getElementById('likeOptions').classList.remove('show'); document.getElementById('dislikeOptions').classList.remove('show'); document.getElementById('customPreferences').classList.remove('show'); if(type==='like'){ document.getElementById('likeOptions').classList.add('show'); } else { document.getElementById('dislikeOptions').classList.add('show'); } }
+        function selectQuickOption(el){ const t=el.textContent; if(t==='自定义我的需求'){ document.getElementById('customPreferences').classList.add('show'); return; } el.style.background='#000'; el.style.color='white'; el.style.borderColor='#000'; setTimeout(()=>{ getNewRecommendation(t); }, 400); }
+        function handleUserInput(){ const v=document.getElementById('userInput').value.trim(); if(v){ getNewRecommendation(`用户输入: ${v}`); document.getElementById('userInput').value=''; } }
+        function toggleGenre(el){ el.classList.toggle('selected'); const g=el.textContent; if(selectedGenres.includes(g)){ selectedGenres=selectedGenres.filter(x=>x!==g);} else { selectedGenres.push(g);} }
+        function getNewRecommendation(ctx=null){ document.getElementById('loading').classList.add('show'); document.getElementById('initialRecommendation').style.display='none'; document.querySelector('.user-input-section').style.display='none'; setTimeout(()=>{ showNewRecommendation(ctx); document.getElementById('loading').classList.remove('show'); }, 1200); }
+        function showNewRecommendation(ctx=null){ const games=[{title:'赛博朋克都市',category:'动作RPG • 科幻',rating:'匹配度 89%',character:'🤖',description:'在未来都市中展开冒险，体验沉浸式的剧情和炫酷的战斗系统。精美的赛博朋克画风和丰富的角色养成系统。',tags:['开放世界','剧情丰富','角色养成','科幻风格'],bg:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'},{title:'魔法学院',category:'卡牌策略 • 魔幻',rating:'匹配度 91%',character:'🎭',description:'在魔法学院中收集卡牌，学习咒语，与其他魔法师对决。策略性的回合制战斗和精美的魔幻世界。',tags:['卡牌收集','策略对战','魔幻世界','回合制'],bg:'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'},{title:'星际探索者',category:'策略模拟 • 太空',rating:'匹配度 87%',character:'🚀',description:'建造你的太空基地，探索未知星系，与外星文明交流。深度的策略玩法和宏大的宇宙观。',tags:['太空探索','基地建设','策略经营','科幻'],bg:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'},{title:'猫咪咖啡馆',category:'模拟经营 • 治愈',rating:'匹配度 94%',character:'🐱',description:'经营一家温馨的猫咪咖啡馆，照顾可爱的小猫们，为客人提供美味的咖啡和甜点。',tags:['治愈系','萌宠','模拟经营','轻松'],bg:'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)'},{title:'音律战士',category:'音乐节奏 • 动作',rating:'匹配度 88%',character:'🎵',description:'跟随节拍击败敌人，在音乐的世界中展开冒险。创新的音乐战斗系统和精美的视觉效果。',tags:['音乐节奏','动作冒险','创新玩法','视听盛宴'],bg:'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'}];
+            const g=games[Math.floor(Math.random()*games.length)]; let badge='基于你的喜好推荐'; if(ctx){ if(ctx.includes('用户输入')) badge='根据你的描述推荐'; else if(ctx.includes('类似')) badge='相似游戏推荐'; else if(ctx.includes('刺激')) badge='刺激动作游戏'; else if(ctx.includes('策略')) badge='烧脑策略游戏'; else if(ctx.includes('治愈')) badge='治愈系游戏'; }
+            const html=`<div class="recommendation-card"><div class="game-image" style="background:${g.bg}"><div class="game-character">${g.character}</div><div class="rating-badge">${g.rating}</div></div><div class="game-info"><div class="ai-badge">${badge}</div><div class="game-title">${g.title}</div><div class="game-category">${g.category}</div><div class="game-description">${g.description}</div><div class="game-tags">${g.tags.map(t=>`<span class='tag'>${t}</span>`).join('')}</div></div></div><div class="feedback-section"><div class="feedback-title">这个推荐更合你心意吗？</div><div class="feedback-buttons"><button class="feedback-btn like" onclick="handleSecondFeedback('like', event)">👍 很棒</button><button class="feedback-btn dislike" onclick="handleSecondFeedback('dislike', event)">👎 继续优化</button></div><button class="get-recommendation-btn" onclick="getNewRecommendation()">🔄 换一个推荐</button></div><div class="user-input-section"><div class="input-group"><label class="input-label">💬 继续告诉我们你的想法</label><input type="text" class="input-field" placeholder="想要什么样的游戏？或者对当前推荐的意见..."><button class="get-recommendation-btn" onclick="handleUserInput()">🔍 重新推荐</button></div></div>`;
+            const node=document.getElementById('newRecommendation'); node.innerHTML=html; node.style.display='block'; }
+        function handleSecondFeedback(type,e){ e.target.classList.add('active'); if(type==='like'){ setTimeout(()=>{ alert('太好了！我们会继续为你推荐类似的精彩游戏 🎉'); }, 400);} else { setTimeout(()=>{ getNewRecommendation(); }, 800);} }
+        function selectProfileGame(el){ document.querySelectorAll('.recommendation-item').forEach(i=>{ i.style.background='#f8f9fa'; i.style.transform='none'; i.style.boxShadow='none';}); el.style.background='#e3f2fd'; el.style.transform='translateY(-1px)'; el.style.boxShadow='0 4px 12px rgba(102,126,234,.2)'; setTimeout(()=>{ const t=el.querySelector('.rec-game-title').textContent; alert(`正在为你展示《${t}》的详细信息...`); }, 300); }
+        function generateMoreProfileRecs(){ const btn=event.target; const txt=btn.innerHTML; btn.innerHTML='<div class="spinner" style="width:16px;height:16px;margin:0 auto;"></div>'; btn.disabled=true; setTimeout(()=>{ btn.innerHTML=txt; btn.disabled=false; alert('已为你生成更多基于画像的个性化推荐！'); }, 1200); }
+        window.addEventListener('load',function(){ const card=document.querySelector('.recommendation-card'); if(card){ card.style.opacity='0'; card.style.transform='translateY(20px)'; setTimeout(()=>{ card.style.transition='all .6s ease'; card.style.opacity='1'; card.style.transform='translateY(0)'; }, 100);} });
+    </script>
+</body>
+</html>
